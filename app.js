@@ -54,6 +54,7 @@ let budgetController = (function(){
 
 
 let UIController = (function(){
+    // DOM defination with classes and ids
     let DOMstrings = {
         inputType:          '.add__type',
         inputDescription:   '.add__description',
@@ -65,6 +66,7 @@ let UIController = (function(){
     
     
     return{
+        // getInput object function function gets input from input fields type, description and value
         getInput: function(){
             return {
                 type        : document.querySelector(DOMstrings.inputType).value,
@@ -72,6 +74,7 @@ let UIController = (function(){
                 value       : document.querySelector(DOMstrings.inputValue).value
             };
         },
+
         addListItem: function(obj, type){
             let html, newHtml, element;
             //Create HTML Strings with place holder text
@@ -93,6 +96,21 @@ let UIController = (function(){
             document.querySelector(element).insertAdjacentHTML('beforeend', newHtml);
 
         },
+
+        //Clearing fields after adding elements to the UI
+        clearFields: function(){
+            let fields, fieldsArr;
+            fields = document.querySelectorAll(DOMstrings.inputDescription +', '+ DOMstrings.inputValue);
+            fieldsArr = Array.prototype.slice.call(fields);
+
+            fieldsArr.forEach(function(current, index, array) {
+                current.value = '';
+            });
+
+            fieldsArr[0].focus();
+        },
+
+        // The oobject function getDOMstrings returns DOMstrings object to the other function since it's private to UIControlor
         getDOMstrings: function(){
             return DOMstrings;
         }
@@ -128,10 +146,17 @@ let controller = (function(budgetCtrl, UICtrl){
         
         // 2. Add the items to the budget controller
         let newItem = budgetCtrl.addItem(input.type, input.description, input.value);
+
         // 3. Add the items to the UI
         UICtrl.addListItem(newItem, input.type);
-        // 4. Calculate the budget
-        // 5. Display the budget on the UI
+        
+        // 4. Clear the fields
+        UICtrl.clearFields();
+        
+        // 5. Calculate the budget
+
+        // 6. Display the budget on the UI
+        
         console.log('Working')
     }
     
