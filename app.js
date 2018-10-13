@@ -11,6 +11,16 @@ let budgetController = (function(){
         this.value = value;
     };
 
+    let calculateTotal = function(type){
+        let sum = 0;
+
+        data.allItems[type].forEach(function(cur){
+            sum += cur.value;
+        });
+
+        data.totals[type] = sum;
+    };
+
     let data = {
         allItems: {
             exp: [],
@@ -19,7 +29,9 @@ let budgetController = (function(){
         totals: {
             exp: 0,
             inc: 0
-        }
+        },
+        budget: 0,
+        percentage: -1
     }
 
     return {
@@ -45,6 +57,34 @@ let budgetController = (function(){
             data.allItems[type].push(newItem);
             return newItem;
         },
+
+        calculateBudget: function(){
+
+            //Calculate total income and expenses
+            calculateTotal('exp');
+            calculateTotal('inc');
+
+            // Calculate the budget: income - expenses
+            data.budget = data.totals.inc - data.totals.exp;
+
+            // calculate the persentage of the income spent
+            if(data.totals.inc > 0){
+                data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+            }else{
+                data.percentage = -1;
+            }
+            
+        },
+
+        getBudget: function(){
+            return {
+                budget: data.budget,
+                totalInc: data.totals.inc,
+                totalExp: data.totals.exp,
+                percentage: data.percentage
+            }
+        },
+
         testing: function(){
             console.log(data);
         }
@@ -53,6 +93,10 @@ let budgetController = (function(){
 })();
 
 
+/*
+The UIController immidiately invoked function that controlls all the user interface related activities that includes declaring classes
+of html elements as DOMstring in an object get values from input fields, add html tags to display incomes and expenses list
+*/
 let UIController = (function(){
     // DOM defination with classes and ids
     let DOMstrings = {
@@ -61,7 +105,11 @@ let UIController = (function(){
         inputValue:         '.add__value',
         inputBtn:           '.add__btn',
         incomeContainer:    '.income__list',
-        expenseContainer:   '.expenses__list'
+        expenseContainer:   '.expenses__list',
+        budgetLable:        '.budget__value',
+        incomeLable:        '.budget__income--value',
+        expenseLable:       '.budget__expenses--value',
+        percentageLable:    '.budget__expenses--percentage'
     }
     
     
@@ -71,7 +119,7 @@ let UIController = (function(){
             return {
                 type        : document.querySelector(DOMstrings.inputType).value,
                 description : document.querySelector(DOMstrings.inputDescription).value,
-                value       : document.querySelector(DOMstrings.inputValue).value
+                value       : parseFloat(document.querySelector(DOMstrings.inputValue).value)
             };
         },
 
@@ -110,6 +158,19 @@ let UIController = (function(){
             fieldsArr[0].focus();
         },
 
+        displayBudget: function(obj){
+            document.querySelector(DOMstrings.budgetLable).textContent = obj.budget;
+            document.querySelector(DOMstrings.incomeLable).textContent = obj.totalInc;
+            document.querySelector(DOMstrings.expenseLable).textContent = obj.totalExp;
+            
+            if(obj.percentage > 0){
+                document.querySelector(DOMstrings.percentageLable).textContent = obj.percentage +'%';
+            }else{
+                document.querySelector(DOMstrings.percentageLable).textContent = '--';
+            }
+
+        },
+
         // The oobject function getDOMstrings returns DOMstrings object to the other function since it's private to UIControlor
         getDOMstrings: function(){
             return DOMstrings;
@@ -139,30 +200,51 @@ let controller = (function(budgetCtrl, UICtrl){
 
     };
     
+    let updateBudget = function(){
+
+        // 1. Calculate the budget
+        budgetCtrl.calculateBudget();
+
+        // 2. Returns the budget
+        let budget = budgetCtrl.getBudget();
+
+        // 3. Display the budget on the UI
+        UICtrl.displayBudget(budget);
+
+    };
 
     let ctrlAddItem = function(){
         // 1. Get input from the input field
         let input = UICtrl.getInput();
         
-        // 2. Add the items to the budget controller
-        let newItem = budgetCtrl.addItem(input.type, input.description, input.value);
+        if(input.description !== '' && !isNaN(input.value) && input.value > 0){
 
-        // 3. Add the items to the UI
-        UICtrl.addListItem(newItem, input.type);
-        
-        // 4. Clear the fields
-        UICtrl.clearFields();
-        
-        // 5. Calculate the budget
+            // 2. Add the items to the budget controller
+            let newItem = budgetCtrl.addItem(input.type, input.description, input.value);
 
-        // 6. Display the budget on the UI
+            // 3. Add the items to the UI
+            UICtrl.addListItem(newItem, input.type);
+            
+            // 4. Clear the fields
+            UICtrl.clearFields();
+
+            // 5. Calculate and update budget
+            updateBudget();
+            
+        }
         
         console.log('Working')
-    }
+    };
     
     return {
         init: function(){
             console.log('Application has started!');
+            UICtrl.displayBudget({
+                budget: 0,
+                totalInc: 0,
+                totalExp: 0,
+                percentage: 0
+            });
             setupEventListeners();
         }
     };
